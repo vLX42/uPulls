@@ -14,6 +14,26 @@ struct FireworksTuning: Codable, Equatable {
     var intensity: Double = 1.0    // rockets + bursts per second
     var sparkSize: Double = 1.0
     var spread: Double = 1.0       // burst radius
+    /// Peak brightness in display headroom multiples. 1.0 = plain SDR white,
+    /// higher values light the sparks past white on an XDR/HDR display.
+    var hdrGain: Double = 3.0
+
+    private enum CodingKeys: String, CodingKey { case duration, intensity, sparkSize, spread, hdrGain }
+
+    init() {}
+
+    init(duration: Double = 3.2, intensity: Double = 1.0, sparkSize: Double = 1.0, spread: Double = 1.0, hdrGain: Double = 3.0) {
+        self.duration = duration; self.intensity = intensity; self.sparkSize = sparkSize; self.spread = spread; self.hdrGain = hdrGain
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        duration = try c.decodeIfPresent(Double.self, forKey: .duration) ?? 3.2
+        intensity = try c.decodeIfPresent(Double.self, forKey: .intensity) ?? 1.0
+        sparkSize = try c.decodeIfPresent(Double.self, forKey: .sparkSize) ?? 1.0
+        spread = try c.decodeIfPresent(Double.self, forKey: .spread) ?? 1.0
+        hdrGain = try c.decodeIfPresent(Double.self, forKey: .hdrGain) ?? 3.0
+    }
 }
 
 @MainActor
@@ -41,11 +61,23 @@ enum Fireworks {
         view.wantsLayer = true
         window.contentView = view
 
-        let dot = particleImage()
-        let rockets = rocketEmitter(size: size, dot: dot, tuning: tuning)
-        let bursts = burstEmitter(size: size, dot: dot, tuning: tuning)
+        // Extended-range backing store: without it the window clips everything at white.
+        if let space = CGColorSpace(name: CGColorSpace.extendedLinearSRGB),
+           let ns = NSColorSpace(cgColorSpace: space) {
+            window.colorSpace = ns
+        }
+
+        let gain = min(max(1.0, CGFloat(tuning.hdrGain)), headroom(of: screen))
+        let rockets = rocketEmitter(size: size, tuning: tuning, gain: 1 + (gain - 1) * 0.55)
+        let bursts = burstEmitter(size: size, tuning: tuning, gain: gain)
+        if let root = view.layer { enableEDR(root) }
+        enableEDR(rockets)
+        enableEDR(bursts)
         view.layer?.addSublayer(rockets)
         view.layer?.addSublayer(bursts)
+        NSLog("[uPulls] fireworks gain %.2f (screen headroom now %.2f, potential %.2f)",
+              gain, screen.maximumExtendedDynamicRangeColorComponentValue,
+              screen.maximumPotentialExtendedDynamicRangeColorComponentValue)
         window.orderFrontRegardless()
         windows.append(window)
 
@@ -57,6 +89,28 @@ enum Fireworks {
             window.orderOut(nil)
             windows.removeAll { $0 === window }
         }
+    }
+
+    /// How much brighter than SDR white this screen can currently go.
+    /// `maximum…` is what is available right now, `maximumPotential…` is what the
+    /// panel could do once EDR content is on screen, which is what we are about to be.
+    /// What this panel could reach once EDR content is on screen. The "current"
+    /// value sits at 1.0 until such content appears, so it cannot be used as the
+    /// ceiling: that would keep EDR from ever engaging.
+    static func headroom(of screen: NSScreen?) -> CGFloat {
+        guard let screen else { return 1 }
+        return max(1, screen.maximumPotentialExtendedDynamicRangeColorComponentValue)
+    }
+
+    /// Opt the layer into extended dynamic range and a float backing store, so
+    /// component values above 1.0 survive instead of being clipped to white.
+    /// Both the modern and the deprecated switch are set: on macOS 26 the new
+    /// property alone still tone maps unless tone mapping is turned off too.
+    private static func enableEDR(_ layer: CALayer) {
+        layer.contentsFormat = .RGBA16Float
+        layer.wantsExtendedDynamicRangeContent = true
+        if #available(macOS 26.0, *) { layer.preferredDynamicRange = .high }
+        if #available(macOS 15.0, *) { layer.toneMapMode = .never }
     }
 
     private static let palette: [NSColor] = [
@@ -76,11 +130,12 @@ enum Fireworks {
         return e
     }
 
-    private static func rocketEmitter(size: CGSize, dot: CGImage?, tuning: FireworksTuning) -> CAEmitterLayer {
+    private static func rocketEmitter(size: CGSize, tuning: FireworksTuning, gain: CGFloat) -> CAEmitterLayer {
         let e = baseEmitter(size: size)
         e.emitterPosition = CGPoint(x: size.width / 2, y: size.height)
         e.emitterSize = CGSize(width: size.width * 0.7, height: 2)
         e.emitterCells = palette.map { color in
+            let dot = sprite(color, gain: gain)
             let rocket = CAEmitterCell()
             rocket.contents = dot
             rocket.birthRate = Float(0.9 * tuning.intensity)
@@ -93,7 +148,6 @@ enum Fireworks {
             rocket.scale = 0.3 * tuning.sparkSize
             rocket.scaleSpeed = -0.15
             rocket.alphaSpeed = -0.7
-            rocket.color = color.cgColor
 
             // No trail sub-cell: a parent cell with an image plus an image-bearing child
             // makes Core Animation draw the parent as a flat square (verified on macOS 26).
@@ -102,11 +156,12 @@ enum Fireworks {
         return e
     }
 
-    private static func burstEmitter(size: CGSize, dot: CGImage?, tuning: FireworksTuning) -> CAEmitterLayer {
+    private static func burstEmitter(size: CGSize, tuning: FireworksTuning, gain: CGFloat) -> CAEmitterLayer {
         let e = baseEmitter(size: size)
         e.emitterPosition = CGPoint(x: size.width / 2, y: size.height * 0.32)
         e.emitterSize = CGSize(width: size.width * 0.7, height: size.height * 0.36)
         e.emitterCells = palette.map { color in
+            let dot = sprite(color, gain: gain)
             // Invisible, near-instant shell: its lifetime × spark birthRate = sparks per burst.
             let shell = CAEmitterCell()
             shell.birthRate = Float(0.5 * tuning.intensity)
@@ -127,10 +182,6 @@ enum Fireworks {
             spark.scaleSpeed = -0.1
             spark.alphaSpeed = -0.8
             spark.spin = 2
-            spark.color = color.withAlphaComponent(0.85).cgColor
-            spark.redRange = 0.1
-            spark.greenRange = 0.1
-            spark.blueRange = 0.1
 
             shell.emitterCells = [spark]
             return shell
@@ -142,19 +193,36 @@ enum Fireworks {
         override var isFlipped: Bool { true }
     }
 
-    /// Soft radial dot used for every particle. Drawn with Core Graphics
-    /// directly: NSGradient's path-clipped draw came out as a hard square.
-    private static func particleImage() -> CGImage? {
+    /// One soft radial dot per palette colour, drawn as a half-float image in
+    /// extended linear Display P3 with premultiplied components above 1.0.
+    /// The brightness has to live in the image: a CGColor tint on the emitter
+    /// cell does not make Core Animation treat the layer as HDR (measured).
+    private static func sprite(_ color: NSColor, gain: CGFloat) -> CGImage? {
         let side = 64
-        guard let ctx = CGContext(data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: 0,
-                                  space: CGColorSpaceCreateDeviceRGB(),
-                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue),
-              let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
-                                        colors: [CGColor(gray: 1, alpha: 1), CGColor(gray: 1, alpha: 0.55), CGColor(gray: 1, alpha: 0)] as CFArray,
-                                        locations: [0, 0.35, 1])
-        else { return nil }
-        let c = CGPoint(x: CGFloat(side) / 2, y: CGFloat(side) / 2)
-        ctx.drawRadialGradient(gradient, startCenter: c, startRadius: 0, endCenter: c, endRadius: CGFloat(side) / 2, options: [])
-        return ctx.makeImage()
+        guard let space = CGColorSpace(name: CGColorSpace.extendedLinearDisplayP3),
+              let p3 = color.usingColorSpace(.displayP3) else { return nil }
+        func linear(_ c: CGFloat) -> Float { Float(c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)) }
+        let rgb = (linear(p3.redComponent), linear(p3.greenComponent), linear(p3.blueComponent))
+        let peak = Float(max(1, gain))
+
+        var px = [Float16](repeating: 0, count: side * side * 4)
+        let c = Float(side) / 2
+        for y in 0..<side {
+            for x in 0..<side {
+                let d = min(1, sqrt(pow(Float(x) + 0.5 - c, 2) + pow(Float(y) + 0.5 - c, 2)) / c)
+                let alpha = max(0, 1 - d) * max(0, 1 - d)       // soft falloff
+                let f = alpha * peak                             // premultiplied, so > 1 in the core
+                let i = (y * side + x) * 4
+                px[i + 0] = Float16(rgb.0 * f)
+                px[i + 1] = Float16(rgb.1 * f)
+                px[i + 2] = Float16(rgb.2 * f)
+                px[i + 3] = Float16(alpha * Float(p3.alphaComponent))
+            }
+        }
+        let info = CGBitmapInfo.floatComponents.rawValue | CGBitmapInfo.byteOrder16Little.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
+        return px.withUnsafeMutableBytes { buf in
+            CGContext(data: buf.baseAddress, width: side, height: side, bitsPerComponent: 16,
+                      bytesPerRow: side * 8, space: space, bitmapInfo: info)?.makeImage()
+        }
     }
 }

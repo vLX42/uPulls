@@ -7,7 +7,7 @@ Open GitHub pull requests in your menu bar. One glance, no clicking around.
 - Every tracked repo and its open PRs visible at once: review state, CI, author, age
 - Your own PRs stand out; PRs waiting on your review get a `review` pill
 - Notifications when someone comments on, requests changes to, or approves your PR
-- 🎆 Fireworks when a PR of yours gets approved (tunable, testable)
+- 🎆 Fireworks when a PR of yours gets approved, in HDR on an XDR display (tunable, testable)
 - Mute a repo for an hour, until tomorrow, or indefinitely; snooze everything for a break
 - Hides Dependabot/Renovate PRs (and optionally drafts and already-approved PRs), ignores Copilot and other bot chatter by default
 - Picks up the `gh` CLI token automatically, or takes a personal access token
@@ -64,7 +64,10 @@ downloads the zip, swaps the app bundle in place, strips the quarantine flag and
 Turn the automatic check off in Settings → Updates.
 
 **Fireworks** have their own section in Settings: duration, intensity, spark size,
-spread, and a *Test fireworks* button (⌘T) so you can tune them.
+spread, brightness, and a *Test fireworks* button (⌘T) so you can tune them. On an
+HDR or XDR display the sparks are drawn in extended dynamic range, so they burn past
+white instead of stopping at it; the brightness slider is how far past. On a standard
+display the slider does nothing and Settings says so.
 
 ## Build from source
 
@@ -73,7 +76,7 @@ git clone https://github.com/vLX42/uPulls.git
 cd uPulls
 swift test               # diff logic, repo parsing, bot detection
 ./build.sh               # produces build/uPulls.app
-./release.sh             # produces dist/uPulls-1.2.1.zip
+./release.sh             # produces dist/uPulls-1.3.0.zip
 ```
 
 `swift build` handles compilation; `build.sh` wraps the binary in a proper

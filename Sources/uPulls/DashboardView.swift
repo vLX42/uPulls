@@ -289,7 +289,8 @@ private struct PRRow: View {
                 .foregroundStyle(.tertiary)
 
             Text(pr.title)
-                .font(.system(size: 12, weight: mine ? .semibold : .regular))
+                .font(.system(size: 12, weight: mine ? .bold : .regular))
+                .foregroundStyle(mine ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
                 .lineLimit(1)
                 .truncationMode(.tail)
 

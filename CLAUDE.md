@@ -54,6 +54,14 @@ alone) → `Store.prs` / `repoErrors` → `ActivityTracker.ingest` (pure diff, r
   `NSMenu`, and the Settings window. Left click toggles the popover; a global mouse monitor closes it.
 - UI is SwiftUI inside AppKit containers. The popover sizes itself via `NSHostingController.sizingOptions =
   .preferredContentSize` plus a height preference key in `DashboardView`.
+- HDR fireworks: the brightness has to live in the sprite. A half-float (`RGBA16Float`) `CGImage` in
+  extended linear Display P3 with premultiplied components above 1.0 activates EDR; an extended-range
+  `CGColor` tint on the emitter cell does not (measured: headroom stayed at 1.0). Layers set
+  `contentsFormat = .RGBA16Float`, `wantsExtendedDynamicRangeContent`, `preferredDynamicRange = .high`
+  (macOS 26) and `toneMapMode = .never` (macOS 15). Clamp the gain with
+  `maximumPotentialExtendedDynamicRangeColorComponentValue`, never the current value: the current one
+  reads 1.0 until EDR content is already on screen. Verify with `--edr-probe`, which logs the screen's
+  live headroom; it should climb above 1.0 during a volley (measured 1.00 → 10.16 on a 16x XDR panel).
 - `Fireworks` uses two independent `CAEmitterLayer`s in a click-through screen-saver-level window. Keep
   `emitterShape = .rectangle`: `.line` emits nothing visible on macOS (verified). The view is flipped so
   "up" is `-π/2` and gravity is positive `yAcceleration`.

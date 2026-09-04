@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct SettingsView: View {
@@ -147,6 +148,8 @@ struct SettingsView: View {
                 tuningSlider("Intensity", value: $store.fireworksTuning.intensity, in: 0.3...3, format: "%.1f×")
                 tuningSlider("Spark size", value: $store.fireworksTuning.sparkSize, in: 0.4...2.5, format: "%.1f×")
                 tuningSlider("Spread", value: $store.fireworksTuning.spread, in: 0.4...2.5, format: "%.1f×")
+                tuningSlider("Brightness", value: $store.fireworksTuning.hdrGain, in: 1...8, format: "%.1f×")
+                Text(hdrHint).font(.caption).foregroundStyle(.secondary)
                 HStack {
                     Button("Reset") { store.fireworksTuning = FireworksTuning() }
                         .controlSize(.small)
@@ -181,6 +184,16 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: 480, height: 820)
+    }
+
+    /// Says whether the display can actually show the extra brightness.
+    private var hdrHint: String {
+        let headroom = Fireworks.headroom(of: NSScreen.main)
+        if headroom <= 1.05 {
+            return "Brightness above 1× needs an HDR or XDR display. This one is standard range, so the sparks stay at white."
+        }
+        let used = min(store.fireworksTuning.hdrGain, Double(headroom))
+        return String(format: "This display can go %.0f× past white. Sparks peak at %.1f×.", headroom, used)
     }
 
     @ViewBuilder

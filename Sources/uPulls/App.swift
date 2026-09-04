@@ -106,6 +106,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) { updater.install() }
             }.store(in: &cancellables)
         }
+        if CommandLine.arguments.contains("--edr-probe") {
+            // Log the screen's live headroom before, during and after a volley:
+            // if EDR engages, the "now" value climbs above 1.0 while it plays.
+            for t in stride(from: 0.0, through: 9.0, by: 1.0) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + t) {
+                    let s = NSScreen.main
+                    NSLog("[uPulls] t=%.0fs headroom now %.2f potential %.2f", t,
+                          s?.maximumExtendedDynamicRangeColorComponentValue ?? 0,
+                          s?.maximumPotentialExtendedDynamicRangeColorComponentValue ?? 0)
+                }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) { NSApp.terminate(nil) }
+        }
         if CommandLine.arguments.contains("--settings") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [self] in openSettings() }
         }
