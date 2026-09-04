@@ -92,7 +92,13 @@ struct SettingsView: View {
             Section("Notifications") {
                 Toggle("Comments and reviews on my PRs", isOn: $store.notifyMyPRs)
                 Toggle("Someone requests my review", isOn: $store.notifyReviewRequests)
-                Toggle("Quiet bots (Copilot reviews, github-actions…)", isOn: $store.quietBots)
+                Toggle(isOn: $store.quietBots) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Quiet bots")
+                        Text("No notifications from Copilot, Renovate, Dependabot, github-actions… including review requests on their PRs.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
                 HStack {
                     Text("Try it").foregroundStyle(.secondary)
                     Spacer()

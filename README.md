@@ -51,8 +51,9 @@ is stored in the login Keychain.
 
 **Notifications** fire only for activity on PRs you authored (plus review requests
 aimed at you), only for events that happen after a repo was added, and never while a
-repo is muted or everything is snoozed. Bot activity (Copilot reviews, github-actions)
-is ignored unless you turn *Quiet bots* off.
+repo is muted or everything is snoozed. Bot activity (Copilot reviews, github-actions,
+review requests on Renovate/Dependabot PRs) is ignored unless you turn *Quiet bots* off,
+and PRs hidden by the bot/draft filters never notify.
 
 **Fireworks** have their own section in Settings: duration, intensity, spark size,
 spread, and a *Test fireworks* button (⌘T) so you can tune them.
@@ -64,7 +65,7 @@ git clone https://github.com/vLX42/uPulls.git
 cd uPulls
 swift test               # diff logic, repo parsing, bot detection
 ./build.sh               # produces build/uPulls.app
-./release.sh             # produces dist/uPulls-1.0.3.zip
+./release.sh             # produces dist/uPulls-1.0.4.zip
 ```
 
 `swift build` handles compilation; `build.sh` wraps the binary in a proper

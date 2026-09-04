@@ -115,6 +115,10 @@ final class Monitor {
 
         case .reviewRequested(let pr):
             guard store.notifyReviewRequests else { return }
+            // Renovate/Dependabot re-request reviews on every rebase; quiet bots covers that,
+            // and anything the list filters hide shouldn't ping either.
+            if store.quietBots && pr.isBotAuthored { return }
+            if store.isHidden(pr) { return }
             notifier.post(title: "\(pr.authorLogin) wants your review",
                           body: "#\(pr.number) \(pr.title)", subtitle: pr.repo,
                           url: pr.url, thread: pr.id)
