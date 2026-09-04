@@ -31,9 +31,12 @@ struct SettingsView: View {
                 Text("Classic token with the `repo` scope, or a fine-grained token with Pull requests: read on the repositories you track.")
             }
 
-            Section("Repositories") {
+            Section {
                 ForEach(store.repos) { repo in
                     HStack {
+                        Image(systemName: "line.3.horizontal")
+                            .foregroundStyle(.quaternary)
+                            .font(.system(size: 10))
                         Text(repo.fullName)
                         if let err = store.repoErrors[repo.key] {
                             Image(systemName: "exclamationmark.triangle.fill")
@@ -47,6 +50,17 @@ struct SettingsView: View {
                                 .foregroundStyle(.secondary)
                                 .labelStyle(.titleAndIcon)
                         }
+                        HStack(spacing: 2) {
+                            Button { store.nudgeRepo(repo, by: -1) } label: { Image(systemName: "chevron.up") }
+                                .disabled(store.repos.first?.key == repo.key)
+                                .help("Move up")
+                            Button { store.nudgeRepo(repo, by: 1) } label: { Image(systemName: "chevron.down") }
+                                .disabled(store.repos.last?.key == repo.key)
+                                .help("Move down")
+                        }
+                        .buttonStyle(.borderless)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
                         Button {
                             store.removeRepo(repo)
                         } label: {
@@ -56,6 +70,7 @@ struct SettingsView: View {
                         .help("Remove")
                     }
                 }
+                .onMove { source, destination in store.moveRepos(from: source, to: destination) }
                 HStack {
                     TextField("owner/repo or GitHub URL", text: $newRepo)
                         .textFieldStyle(.roundedBorder)
@@ -68,6 +83,10 @@ struct SettingsView: View {
                     Text("Already tracked or not a valid owner/repo.")
                         .font(.caption).foregroundStyle(.red)
                 }
+            } header: {
+                Text("Repositories")
+            } footer: {
+                Text("The popover lists repositories in this order. Drag a row or use the arrows.")
             }
 
             Section("Notifications") {

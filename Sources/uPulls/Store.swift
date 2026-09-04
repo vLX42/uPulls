@@ -135,6 +135,18 @@ final class Store: ObservableObject {
         tracker.forget(repo: repo.key)
     }
 
+    func moveRepos(from source: IndexSet, to destination: Int) {
+        repos.move(fromOffsets: source, toOffset: destination)
+    }
+
+    /// Shift a repo one step up (-1) or down (+1).
+    func nudgeRepo(_ repo: TrackedRepo, by delta: Int) {
+        guard let i = repos.firstIndex(where: { $0.key == repo.key }) else { return }
+        let j = i + delta
+        guard repos.indices.contains(j) else { return }
+        repos.swapAt(i, j)
+    }
+
     func mute(_ repo: TrackedRepo, until: Date?) {
         guard let i = repos.firstIndex(where: { $0.key == repo.key }) else { return }
         repos[i].mutedUntil = until
