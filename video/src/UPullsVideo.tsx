@@ -1,8 +1,8 @@
-import { AbsoluteFill, Audio, getStaticFiles, staticFile } from "remotion";
+import { AbsoluteFill, Audio, getStaticFiles, interpolate, staticFile } from "remotion";
 import { TransitionSeries, linearTiming } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
 import { FONT } from "./fonts";
-import { C, SCENES, TRANSITION } from "./constants";
+import { C, DURATION_FRAMES, SCENES, TRANSITION } from "./constants";
 import { Intro } from "./scenes/01-Intro";
 import { MenuBar } from "./scenes/02-MenuBar";
 import { Details } from "./scenes/03-Details";
@@ -18,7 +18,12 @@ export const UPullsVideo = () => {
   const music = getStaticFiles().find((f) => f.name === "music.mp3");
   return (
   <AbsoluteFill style={{ background: C.bg, fontFamily: FONT, color: C.text }}>
-    {music && <Audio src={staticFile("music.mp3")} volume={0.9} />}
+    {music && (
+      <Audio
+        src={staticFile("music.mp3")}
+        volume={(f) => interpolate(f, [0, 20, DURATION_FRAMES - 70, DURATION_FRAMES - 4], [0, 0.9, 0.9, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })}
+      />
+    )}
     <TransitionSeries>
       <TransitionSeries.Sequence durationInFrames={SCENES.intro}><Intro /></TransitionSeries.Sequence>
       <TransitionSeries.Transition presentation={FADE} timing={timing} />
