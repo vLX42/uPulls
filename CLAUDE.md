@@ -59,6 +59,13 @@ GraphQL notes: bots come back as `author.__typename == "Bot"` (Copilot is `copil
 `viewer` has no `__typename` in our query, so it decodes into its own struct. Timeline window is the last 20
 `ISSUE_COMMENT`/`PULL_REQUEST_REVIEW` items per PR; empty `COMMENTED` reviews are ignored as noise.
 
+## Promo video (`video/`)
+
+Remotion 4 project, all `@remotion/*` pinned to the same version. Scenes in `src/scenes`, frame budget in
+`src/constants.ts` (output = sum of scenes minus 18 frames per transition). `src/components/Popover.tsx` is a
+mock of `DashboardView` with fake data (acme/…); keep it in sync when the real popover changes. Render one
+frame with `npx remotion still src/index.ts UPulls out/x.jpg --frame=N`, the video with `npm run build`.
+
 ## Conventions
 
 - Bundle id `com.upulls.app`; `LSUIElement` (no Dock icon). Version lives in `Resources/Info.plist` and is

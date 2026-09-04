@@ -78,6 +78,19 @@ opens Settings, `--notify-test` posts a sample notification,
 `UPULLS_NO_KEYCHAIN=1` keeps the token in memory (avoids the Keychain prompt
 that every ad-hoc rebuild triggers).
 
+## Promo video
+
+`video/` is a [Remotion](https://remotion.dev) project that renders the launch video
+(menu bar, popover, notifications, fireworks, outro) from React mocks of the real UI:
+
+```sh
+cd video && npm install
+npm run studio          # live preview
+npm run build           # out/upulls.mp4, 1920×1080, 30 fps, ~40 s
+```
+
+Drop a track at `video/public/music.mp3` and it is mixed in automatically.
+
 ## Project layout
 
 ```
