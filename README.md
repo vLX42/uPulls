@@ -66,7 +66,7 @@ Turn the automatic check off in Settings → Updates.
 **Fireworks** have their own section in Settings: duration, intensity, spark size,
 spread, brightness, and a *Test fireworks* button (⌘T) so you can tune them. On an
 HDR or XDR display the sparks are drawn in extended dynamic range, so they burn past
-white instead of stopping at it; the brightness slider is how far past. On a standard
+white instead of stopping at it; the brightness slider is how far past, and it defaults to 6.5x. On a standard
 display the slider does nothing and Settings says so.
 
 ## Build from source
@@ -76,7 +76,7 @@ git clone https://github.com/vLX42/uPulls.git
 cd uPulls
 swift test               # diff logic, repo parsing, bot detection
 ./build.sh               # produces build/uPulls.app
-./release.sh             # produces dist/uPulls-1.3.0.zip
+./release.sh             # produces dist/uPulls-1.3.1.zip
 ```
 
 `swift build` handles compilation; `build.sh` wraps the binary in a proper

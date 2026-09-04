@@ -148,7 +148,7 @@ struct SettingsView: View {
                 tuningSlider("Intensity", value: $store.fireworksTuning.intensity, in: 0.3...3, format: "%.1f×")
                 tuningSlider("Spark size", value: $store.fireworksTuning.sparkSize, in: 0.4...2.5, format: "%.1f×")
                 tuningSlider("Spread", value: $store.fireworksTuning.spread, in: 0.4...2.5, format: "%.1f×")
-                tuningSlider("Brightness", value: $store.fireworksTuning.hdrGain, in: 1...8, format: "%.1f×")
+                tuningSlider("Brightness", value: $store.fireworksTuning.hdrGain, in: 1...12, format: "%.1f×")
                 Text(hdrHint).font(.caption).foregroundStyle(.secondary)
                 HStack {
                     Button("Reset") { store.fireworksTuning = FireworksTuning() }

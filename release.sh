@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-VERSION="${VERSION:-1.3.0}"
+VERSION="${VERSION:-1.3.1}"
 APP_NAME="uPulls"
 DIST="dist"
 STAGE="$DIST/staging"

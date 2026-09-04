@@ -16,13 +16,13 @@ struct FireworksTuning: Codable, Equatable {
     var spread: Double = 1.0       // burst radius
     /// Peak brightness in display headroom multiples. 1.0 = plain SDR white,
     /// higher values light the sparks past white on an XDR/HDR display.
-    var hdrGain: Double = 3.0
+    var hdrGain: Double = 6.5
 
     private enum CodingKeys: String, CodingKey { case duration, intensity, sparkSize, spread, hdrGain }
 
     init() {}
 
-    init(duration: Double = 3.2, intensity: Double = 1.0, sparkSize: Double = 1.0, spread: Double = 1.0, hdrGain: Double = 3.0) {
+    init(duration: Double = 3.2, intensity: Double = 1.0, sparkSize: Double = 1.0, spread: Double = 1.0, hdrGain: Double = 6.5) {
         self.duration = duration; self.intensity = intensity; self.sparkSize = sparkSize; self.spread = spread; self.hdrGain = hdrGain
     }
 
@@ -32,7 +32,7 @@ struct FireworksTuning: Codable, Equatable {
         intensity = try c.decodeIfPresent(Double.self, forKey: .intensity) ?? 1.0
         sparkSize = try c.decodeIfPresent(Double.self, forKey: .sparkSize) ?? 1.0
         spread = try c.decodeIfPresent(Double.self, forKey: .spread) ?? 1.0
-        hdrGain = try c.decodeIfPresent(Double.self, forKey: .hdrGain) ?? 3.0
+        hdrGain = try c.decodeIfPresent(Double.self, forKey: .hdrGain) ?? 6.5
     }
 }
 
@@ -68,7 +68,7 @@ enum Fireworks {
         }
 
         let gain = min(max(1.0, CGFloat(tuning.hdrGain)), headroom(of: screen))
-        let rockets = rocketEmitter(size: size, tuning: tuning, gain: 1 + (gain - 1) * 0.55)
+        let rockets = rocketEmitter(size: size, tuning: tuning, gain: 1 + (gain - 1) * 0.65)
         let bursts = burstEmitter(size: size, tuning: tuning, gain: gain)
         if let root = view.layer { enableEDR(root) }
         enableEDR(rockets)
