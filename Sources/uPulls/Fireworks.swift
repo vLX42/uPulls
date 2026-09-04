@@ -20,14 +20,15 @@ struct FireworksTuning: Codable, Equatable {
 enum Fireworks {
     private static var windows: [NSWindow] = []
 
-    static func launch(_ tuning: FireworksTuning = FireworksTuning()) {
+    /// `backdrop` paints the overlay black: used to take clean promo captures.
+    static func launch(_ tuning: FireworksTuning = FireworksTuning(), backdrop: Bool = false) {
         guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
         let size = screen.frame.size
         let duration = max(1, tuning.duration)
 
         let window = NSWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
         window.isOpaque = false
-        window.backgroundColor = .clear
+        window.backgroundColor = backdrop ? NSColor(calibratedRed: 0.04, green: 0.04, blue: 0.07, alpha: 1) : .clear
         window.hasShadow = false
         window.ignoresMouseEvents = true
         window.level = .screenSaver
@@ -91,20 +92,11 @@ enum Fireworks {
             rocket.yAcceleration = size.height * 0.3
             rocket.scale = 0.3 * tuning.sparkSize
             rocket.scaleSpeed = -0.15
-            rocket.alphaSpeed = -0.6
+            rocket.alphaSpeed = -0.7
             rocket.color = color.cgColor
 
-            let trail = CAEmitterCell()
-            trail.contents = dot
-            trail.birthRate = 60
-            trail.lifetime = 0.35
-            trail.velocity = 20
-            trail.emissionRange = .pi * 2
-            trail.scale = 0.18
-            trail.scaleSpeed = -0.4
-            trail.alphaSpeed = -2.5
-            trail.color = color.withAlphaComponent(0.7).cgColor
-            rocket.emitterCells = [trail]
+            // No trail sub-cell: a parent cell with an image plus an image-bearing child
+            // makes Core Animation draw the parent as a flat square (verified on macOS 26).
             return rocket
         }
         return e
@@ -130,8 +122,8 @@ enum Fireworks {
             spark.velocityRange = size.height * 0.1 * tuning.spread
             spark.emissionRange = .pi * 2
             spark.yAcceleration = size.height * 0.1
-            spark.scale = 0.22 * tuning.sparkSize
-            spark.scaleRange = 0.08 * tuning.sparkSize
+            spark.scale = 0.3 * tuning.sparkSize
+            spark.scaleRange = 0.1 * tuning.sparkSize
             spark.scaleSpeed = -0.1
             spark.alphaSpeed = -0.8
             spark.spin = 2
@@ -150,14 +142,19 @@ enum Fireworks {
         override var isFlipped: Bool { true }
     }
 
-    /// Soft radial dot used for every particle.
+    /// Soft radial dot used for every particle. Drawn with Core Graphics
+    /// directly: NSGradient's path-clipped draw came out as a hard square.
     private static func particleImage() -> CGImage? {
-        let side = 32
-        let image = NSImage(size: NSSize(width: side, height: side), flipped: false) { rect in
-            let gradient = NSGradient(colors: [NSColor.white, NSColor.white.withAlphaComponent(0)])
-            gradient?.draw(in: NSBezierPath(ovalIn: rect), relativeCenterPosition: .zero)
-            return true
-        }
-        return image.cgImage(forProposedRect: nil, context: nil, hints: nil)
+        let side = 64
+        guard let ctx = CGContext(data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: 0,
+                                  space: CGColorSpaceCreateDeviceRGB(),
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue),
+              let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                        colors: [CGColor(gray: 1, alpha: 1), CGColor(gray: 1, alpha: 0.55), CGColor(gray: 1, alpha: 0)] as CFArray,
+                                        locations: [0, 0.35, 1])
+        else { return nil }
+        let c = CGPoint(x: CGFloat(side) / 2, y: CGFloat(side) / 2)
+        ctx.drawRadialGradient(gradient, startCenter: c, startRadius: 0, endCenter: c, endRadius: CGFloat(side) / 2, options: [])
+        return ctx.makeImage()
     }
 }

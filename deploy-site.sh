@@ -17,7 +17,7 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 echo "→ Cloning $SITE_REPO"
 gh repo clone "$SITE_REPO" "$TMP_DIR/site" >/dev/null
 
-cp "$SRC_DIR/website/index.html" "$TMP_DIR/site/index.html"
+cp "$SRC_DIR"/website/* "$TMP_DIR/site/"
 
 cd "$TMP_DIR/site"
 
@@ -26,7 +26,7 @@ if git diff --quiet && [ -z "$(git status --porcelain)" ]; then
     exit 0
 fi
 
-git add index.html
+git add -A
 git commit -m "Update homepage from uPulls@$SRC_SHA"
 git push origin main
 

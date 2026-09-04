@@ -64,7 +64,7 @@ git clone https://github.com/vLX42/uPulls.git
 cd uPulls
 swift test               # diff logic, repo parsing, bot detection
 ./build.sh               # produces build/uPulls.app
-./release.sh             # produces dist/uPulls-1.0.0.zip
+./release.sh             # produces dist/uPulls-1.0.1.zip
 ```
 
 `swift build` handles compilation; `build.sh` wraps the binary in a proper

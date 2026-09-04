@@ -71,7 +71,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Dev helpers: `open build/uPulls.app --args --fireworks --open-menu --snapshot <dir>`
         if CommandLine.arguments.contains("--fireworks") {
             let delay: TimeInterval = CommandLine.arguments.contains("--snapshot") ? 4.8 : 0.5
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [self] in Fireworks.launch(store.fireworksTuning) }
+            let backdrop = CommandLine.arguments.contains("--backdrop")
+            // --promo: louder tuning for marketing captures on a 1x display.
+            let tuning = CommandLine.arguments.contains("--promo")
+                ? FireworksTuning(duration: 5, intensity: 2.0, sparkSize: 2.0, spread: 1.15)
+                : store.fireworksTuning
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { Fireworks.launch(tuning, backdrop: backdrop) }
         }
         if CommandLine.arguments.contains("--notify-test") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
