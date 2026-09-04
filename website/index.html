@@ -129,6 +129,12 @@
   .pop-foot { display: flex; justify-content: space-between; padding: 5px 12px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 10px; color: rgba(255,255,255,0.35); }
 
 
+
+  /* --- Film --- */
+  .film { position: relative; border-radius: 16px; overflow: hidden; border: 1px solid var(--border); background: #000; aspect-ratio: 16 / 9; box-shadow: 0 30px 60px -30px rgba(167,139,250,0.35); }
+  .film video { width: 100%; height: 100%; display: block; }
+  .film-note { text-align: center; color: var(--muted); font-size: 13px; margin-top: 10px; }
+
   /* --- Moments: notification + fireworks --- */
   .moments { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .moment { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
@@ -215,6 +221,14 @@
       <div class="stat"><span class="num">arm64</span><span class="lbl">Native binary</span></div>
     </div>
   </section>
+
+  <h2>The film</h2>
+  <div class="film">
+    <video controls preload="metadata" poster="upulls-launch-poster.jpg" aria-label="uPulls launch video">
+      <source src="upulls-launch.mp4" type="video/mp4">
+    </video>
+  </div>
+  <p class="film-note">40 seconds. Sound on.</p>
 
   <h2>Preview</h2>
   <div class="mock">
