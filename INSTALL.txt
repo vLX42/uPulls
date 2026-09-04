@@ -1,0 +1,40 @@
+uPulls — open GitHub pull requests in your menu bar
+====================================================
+
+1. Drag uPulls.app into your /Applications folder.
+
+2. macOS will refuse to open this app on first launch because it
+   isn't notarized by Apple (notarization requires a paid
+   Developer Program membership). Two ways to bypass:
+
+   Option A — Terminal (one command):
+       xattr -d com.apple.quarantine /Applications/uPulls.app
+
+   Option B — Finder:
+       Right-click uPulls.app → Open → click "Open" in the dialog.
+
+   You only need to do this once.
+
+3. Look for the pull-request icon in your menu bar (top-right).
+   Click it for the overview, right-click for the utility menu.
+
+4. Connect GitHub. If the GitHub CLI (gh) is installed and logged
+   in, uPulls picks up its token automatically. Otherwise paste a
+   personal access token in Settings (gear icon).
+
+5. Add repositories in Settings: owner/repo or paste a GitHub URL.
+
+6. Allow notifications when macOS asks, otherwise comments and
+   approvals on your PRs can't reach you.
+
+Requirements
+------------
+- macOS 14 (Sonoma) or later
+- Apple Silicon (M1/M2/M3/M4)
+
+Uninstall
+---------
+1. Quit uPulls (right-click the icon → Quit, or: killall uPulls)
+2. rm -rf /Applications/uPulls.app
+3. defaults delete com.upulls.app
+4. Remove "uPulls GitHub token" from Keychain Access if you used one.

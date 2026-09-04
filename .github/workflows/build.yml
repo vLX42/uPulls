@@ -1,0 +1,44 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build app
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+          uname -m
+
+      - name: Test
+        run: swift test
+
+      - name: Build .app bundle
+        run: ./build.sh
+
+      - name: Verify binary
+        run: |
+          file build/uPulls.app/Contents/MacOS/uPulls
+          du -sh build/uPulls.app
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: uPulls-${{ github.sha }}
+          path: build/uPulls.app
+          if-no-files-found: error
+          retention-days: 14
