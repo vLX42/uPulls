@@ -41,6 +41,9 @@ Data flow per poll (`Monitor.performRefresh`):
 alone) → `Store.prs` / `repoErrors` → `ActivityTracker.ingest` (pure diff, returns `[Alert]`) →
 `Monitor.deliver` applies user preferences (quiet bots, snooze, toggles) → `Notifier` / `Fireworks`.
 
+- List filters and notifications share one rule: `Store.isHidden(pr)` decides both, and `Monitor.deliver`
+  drops any alert whose PR is hidden. `isHidden` never hides your own PRs or ones where you are a requested
+  reviewer, so those always show and always notify.
 - `Store` is the single `@MainActor ObservableObject`: every setting persists in `didSet` (UserDefaults; token
   in Keychain via `Keychain.swift`). Muted repos carry `mutedUntil` (`.distantFuture` = indefinitely); global
   snooze is `snoozedUntil`. `expireTimers()` clears elapsed ones.

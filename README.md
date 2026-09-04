@@ -53,7 +53,8 @@ is stored in the login Keychain.
 
 **Notifications** fire only for activity on PRs you authored (plus review requests
 aimed at you), only for events that happen after a repo was added, and never while a
-repo is muted or everything is snoozed. Bot activity (Copilot reviews, github-actions,
+repo is muted or everything is snoozed. Whatever the list filters hide never notifies
+either, so the menu and the notifications always agree. Bot activity (Copilot reviews, github-actions,
 review requests on Renovate/Dependabot PRs) is ignored unless you turn *Quiet bots* off,
 and PRs hidden by the bot/draft filters never notify.
 
@@ -72,7 +73,7 @@ git clone https://github.com/vLX42/uPulls.git
 cd uPulls
 swift test               # diff logic, repo parsing, bot detection
 ./build.sh               # produces build/uPulls.app
-./release.sh             # produces dist/uPulls-1.2.0.zip
+./release.sh             # produces dist/uPulls-1.2.1.zip
 ```
 
 `swift build` handles compilation; `build.sh` wraps the binary in a proper

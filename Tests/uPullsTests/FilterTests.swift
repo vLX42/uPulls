@@ -46,3 +46,47 @@ final class FilterTests: XCTestCase {
         XCTAssertFalse(store.isHidden(pr(10)))
     }
 }
+
+/// The rule the Monitor applies before every notification: what the list hides, it does not announce.
+@MainActor
+final class NotificationFilterTests: XCTestCase {
+    private let store = Store.shared
+
+    private func alertPR(_ n: Int, author: String, draft: Bool = false,
+                         decision: ReviewDecision = .none, reviewers: [String] = []) -> PullRequest {
+        PullRequest(id: "n\(n)", number: n, title: "t", url: URL(string: "https://example.com")!, repo: "acme/app",
+                    authorLogin: author, authorAvatar: nil, authorIsBot: author == "renovate", isDraft: draft,
+                    createdAt: Date(), updatedAt: Date(), reviewDecision: decision, checks: .none,
+                    requestedReviewers: reviewers, events: [])
+    }
+
+    override func setUp() {
+        store.viewerLogin = "me"
+        store.hideBotPRs = true
+        store.hideDraftPRs = true
+        store.hideApprovedPRs = true
+    }
+
+    override func tearDown() {
+        store.hideDraftPRs = false
+        store.hideApprovedPRs = false
+    }
+
+    func testAlertsOnYourOwnPRsAlwaysGetThrough() {
+        for pr in [alertPR(1, author: "me", draft: true), alertPR(2, author: "me", decision: .approved)] {
+            let ev = ActivityEvent(id: "e", kind: .comment, authorLogin: "bob", authorIsBot: false, createdAt: Date())
+            XCTAssertFalse(store.isHidden(Alert.comment(pr, by: ev).pr))
+        }
+    }
+
+    func testReviewRequestOnAHiddenPRIsSilenced() {
+        // A draft by someone else that does not name you: hidden, so no ping.
+        XCTAssertTrue(store.isHidden(Alert.reviewRequested(alertPR(3, author: "bob", draft: true)).pr))
+        // Once you are the requested reviewer it is visible again, so it pings.
+        XCTAssertFalse(store.isHidden(Alert.reviewRequested(alertPR(4, author: "bob", decision: .approved, reviewers: ["me"])).pr))
+    }
+
+    func testBotPRIsSilenced() {
+        XCTAssertTrue(store.isHidden(Alert.reviewRequested(alertPR(5, author: "renovate")).pr))
+    }
+}

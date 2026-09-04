@@ -6,6 +6,13 @@ enum Alert {
     case approved(PullRequest, by: ActivityEvent)
     case changesRequested(PullRequest, by: ActivityEvent)
     case reviewRequested(PullRequest)
+
+    var pr: PullRequest {
+        switch self {
+        case .comment(let pr, _), .approved(let pr, _), .changesRequested(let pr, _), .reviewRequested(let pr):
+            return pr
+        }
+    }
 }
 
 /// Pure bookkeeping: which timeline events and review requests we've already

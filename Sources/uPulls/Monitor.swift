@@ -92,6 +92,9 @@ final class Monitor {
 
     private func deliver(_ alert: Alert) {
         let notifier = Notifier.shared
+        // One rule for everything: a PR the list filters hide never notifies.
+        // (Your own PRs and PRs waiting on your review are never hidden.)
+        if store.isHidden(alert.pr) { return }
         switch alert {
         case .comment(let pr, let ev):
             guard store.notifyMyPRs, !(store.quietBots && ev.authorIsBot) else { return }
@@ -118,7 +121,6 @@ final class Monitor {
             // Renovate/Dependabot re-request reviews on every rebase; quiet bots covers that,
             // and anything the list filters hide shouldn't ping either.
             if store.quietBots && pr.isBotAuthored { return }
-            if store.isHidden(pr) { return }
             notifier.post(title: "\(pr.authorLogin) wants your review",
                           body: "#\(pr.number) \(pr.title)", subtitle: pr.repo,
                           url: pr.url, thread: pr.id)
