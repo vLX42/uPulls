@@ -12,6 +12,7 @@ final class Store: ObservableObject {
     @Published var repos: [TrackedRepo] { didSet { persist(repos, .repos) } }
     @Published var token: String { didSet { if token != oldValue, !Self.keychainDisabled { Keychain.write(token) } } }
     @Published var hideBotPRs: Bool { didSet { defaults.set(hideBotPRs, forKey: Key.hideBotPRs.rawValue) } }
+    @Published var hideDraftPRs: Bool { didSet { defaults.set(hideDraftPRs, forKey: Key.hideDraftPRs.rawValue) } }
     @Published var quietBots: Bool { didSet { defaults.set(quietBots, forKey: Key.quietBots.rawValue) } }
     @Published var notifyMyPRs: Bool { didSet { defaults.set(notifyMyPRs, forKey: Key.notifyMyPRs.rawValue) } }
     @Published var notifyReviewRequests: Bool { didSet { defaults.set(notifyReviewRequests, forKey: Key.notifyReviewRequests.rawValue) } }
@@ -39,13 +40,14 @@ final class Store: ObservableObject {
     static let keychainDisabled = ProcessInfo.processInfo.environment["UPULLS_NO_KEYCHAIN"] == "1"
 
     private enum Key: String {
-        case repos, hideBotPRs, quietBots, notifyMyPRs, notifyReviewRequests, fireworks, fireworksTuning, showCount, pollInterval, snoozedUntil, tracker
+        case repos, hideBotPRs, hideDraftPRs, quietBots, notifyMyPRs, notifyReviewRequests, fireworks, fireworksTuning, showCount, pollInterval, snoozedUntil, tracker
     }
 
     private init() {
         let d = UserDefaults.standard
         d.register(defaults: [
             Key.hideBotPRs.rawValue: true,
+            Key.hideDraftPRs.rawValue: false,
             Key.quietBots.rawValue: true,
             Key.notifyMyPRs.rawValue: true,
             Key.notifyReviewRequests.rawValue: true,
@@ -58,6 +60,7 @@ final class Store: ObservableObject {
         fireworksTuning = Self.load(FireworksTuning.self, .fireworksTuning) ?? FireworksTuning()
         token = Self.keychainDisabled ? "" : (Keychain.read() ?? "")
         hideBotPRs = d.bool(forKey: Key.hideBotPRs.rawValue)
+        hideDraftPRs = d.bool(forKey: Key.hideDraftPRs.rawValue)
         quietBots = d.bool(forKey: Key.quietBots.rawValue)
         notifyMyPRs = d.bool(forKey: Key.notifyMyPRs.rawValue)
         notifyReviewRequests = d.bool(forKey: Key.notifyReviewRequests.rawValue)
@@ -76,9 +79,17 @@ final class Store: ObservableObject {
 
     var mutedRepoKeys: Set<String> { Set(repos.filter(\.isMuted).map(\.key)) }
 
-    /// PRs for one repo after the bot filter, mine first, then ones waiting on me, then newest activity.
+    /// Filters that hide a PR from the list (never your own PRs: those are always shown).
+    func isHidden(_ pr: PullRequest) -> Bool {
+        if pr.isAuthored(by: viewerLogin) { return false }
+        if hideBotPRs && pr.isBotAuthored { return true }
+        if hideDraftPRs && pr.isDraft { return true }
+        return false
+    }
+
+    /// PRs for one repo after the filters, mine first, then ones waiting on me, then newest activity.
     func visiblePRs(for repo: TrackedRepo) -> [PullRequest] {
-        prs.filter { $0.repoKey == repo.key && !(hideBotPRs && $0.isBotAuthored) }
+        prs.filter { $0.repoKey == repo.key && !isHidden($0) }
             .sorted { a, b in
                 let ra = rank(a), rb = rank(b)
                 if ra != rb { return ra < rb }
@@ -88,7 +99,12 @@ final class Store: ObservableObject {
 
     func hiddenBotCount(for repo: TrackedRepo) -> Int {
         guard hideBotPRs else { return 0 }
-        return prs.filter { $0.repoKey == repo.key && $0.isBotAuthored }.count
+        return prs.filter { $0.repoKey == repo.key && isHidden($0) && $0.isBotAuthored }.count
+    }
+
+    func hiddenDraftCount(for repo: TrackedRepo) -> Int {
+        guard hideDraftPRs else { return 0 }
+        return prs.filter { $0.repoKey == repo.key && isHidden($0) && $0.isDraft && !$0.isBotAuthored }.count
     }
 
     /// What the menu-bar badge shows: open PRs across unmuted repos.

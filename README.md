@@ -9,7 +9,7 @@ Open GitHub pull requests in your menu bar. One glance, no clicking around.
 - Notifications when someone comments on, requests changes to, or approves your PR
 - 🎆 Fireworks when a PR of yours gets approved (tunable, testable)
 - Mute a repo for an hour, until tomorrow, or indefinitely; snooze everything for a break
-- Hides Dependabot/Renovate PRs, ignores Copilot and other bot chatter by default
+- Hides Dependabot/Renovate PRs (and optionally drafts), ignores Copilot and other bot chatter by default
 - Picks up the `gh` CLI token automatically, or takes a personal access token
 
 Built because every "PR dashboard" is either a browser tab or an Electron app.
@@ -64,7 +64,7 @@ git clone https://github.com/vLX42/uPulls.git
 cd uPulls
 swift test               # diff logic, repo parsing, bot detection
 ./build.sh               # produces build/uPulls.app
-./release.sh             # produces dist/uPulls-1.0.1.zip
+./release.sh             # produces dist/uPulls-1.0.2.zip
 ```
 
 `swift build` handles compilation; `build.sh` wraps the binary in a proper
