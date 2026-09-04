@@ -19,6 +19,11 @@ final class Store: ObservableObject {
     @Published var fireworks: Bool { didSet { defaults.set(fireworks, forKey: Key.fireworks.rawValue) } }
     @Published var fireworksTuning: FireworksTuning { didSet { persist(fireworksTuning, .fireworksTuning) } }
     @Published var showCount: Bool { didSet { defaults.set(showCount, forKey: Key.showCount.rawValue) } }
+    @Published var autoUpdate: Bool { didSet { defaults.set(autoUpdate, forKey: Key.autoUpdate.rawValue) } }
+    var notifiedUpdateVersion: String? {
+        get { defaults.string(forKey: Key.notifiedUpdateVersion.rawValue) }
+        set { defaults.set(newValue, forKey: Key.notifiedUpdateVersion.rawValue) }
+    }
     @Published var pollInterval: TimeInterval { didSet { defaults.set(pollInterval, forKey: Key.pollInterval.rawValue) } }
     @Published var snoozedUntil: Date? { didSet { defaults.set(snoozedUntil, forKey: Key.snoozedUntil.rawValue) } }
 
@@ -40,7 +45,7 @@ final class Store: ObservableObject {
     static let keychainDisabled = ProcessInfo.processInfo.environment["UPULLS_NO_KEYCHAIN"] == "1"
 
     private enum Key: String {
-        case repos, hideBotPRs, hideDraftPRs, quietBots, notifyMyPRs, notifyReviewRequests, fireworks, fireworksTuning, showCount, pollInterval, snoozedUntil, tracker
+        case repos, hideBotPRs, hideDraftPRs, quietBots, notifyMyPRs, notifyReviewRequests, fireworks, fireworksTuning, showCount, autoUpdate, notifiedUpdateVersion, pollInterval, snoozedUntil, tracker
     }
 
     private init() {
@@ -53,6 +58,7 @@ final class Store: ObservableObject {
             Key.notifyReviewRequests.rawValue: true,
             Key.fireworks.rawValue: true,
             Key.showCount.rawValue: true,
+            Key.autoUpdate.rawValue: true,
             Key.pollInterval.rawValue: 60.0,
         ])
         repos = Self.load([TrackedRepo].self, .repos) ?? []
@@ -66,6 +72,7 @@ final class Store: ObservableObject {
         notifyReviewRequests = d.bool(forKey: Key.notifyReviewRequests.rawValue)
         fireworks = d.bool(forKey: Key.fireworks.rawValue)
         showCount = d.bool(forKey: Key.showCount.rawValue)
+        autoUpdate = d.bool(forKey: Key.autoUpdate.rawValue)
         pollInterval = d.double(forKey: Key.pollInterval.rawValue)
         snoozedUntil = d.object(forKey: Key.snoozedUntil.rawValue) as? Date
     }

@@ -55,6 +55,12 @@ alone) → `Store.prs` / `repoErrors` → `ActivityTracker.ingest` (pure diff, r
   `emitterShape = .rectangle`: `.line` emits nothing visible on macOS (verified). The view is flipped so
   "up" is `-π/2` and gravity is positive `yAcceleration`.
 
+- `Updater` polls `repos/vLX42/uPulls/releases/latest`, compares with `CFBundleShortVersionString`, and installs
+  by moving the running bundle aside, moving the unpacked app in, and relaunching via a `/bin/sh` that waits for
+  the pid to exit. The release zip keeps a parent folder, so it searches up to three levels for the `.app`.
+  End-to-end test: build, `plutil -replace CFBundleShortVersionString -string 1.0.0 build/uPulls.app/Contents/Info.plist`,
+  re-sign, run with `--self-update-test`, then confirm the plist version changed and one process is running.
+
 GraphQL notes: bots come back as `author.__typename == "Bot"` (Copilot is `copilot-pull-request-reviewer`);
 `viewer` has no `__typename` in our query, so it decodes into its own struct. Timeline window is the last 20
 `ISSUE_COMMENT`/`PULL_REQUEST_REVIEW` items per PR; empty `COMMENTED` reviews are ignored as noise.

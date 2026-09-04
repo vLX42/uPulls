@@ -68,6 +68,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         monitor.start()
 
+        let updater = Updater.shared
+        updater.start(auto: store.autoUpdate)
+        store.$autoUpdate.dropFirst().sink { updater.start(auto: $0) }.store(in: &cancellables)
+        updater.$latest
+            .compactMap { _ in updater.updateAvailable }
+            .receive(on: RunLoop.main)
+            .sink { [weak self] release in
+                guard let self, store.notifiedUpdateVersion != release.version else { return }
+                store.notifiedUpdateVersion = release.version
+                Notifier.shared.post(title: "uPulls \(release.version) is available",
+                                     body: "Open uPulls and click Update, it installs and relaunches by itself.",
+                                     url: release.pageURL, thread: "update", sound: false)
+            }
+            .store(in: &cancellables)
+
         // Dev helpers: `open build/uPulls.app --args --fireworks --open-menu --snapshot <dir>`
         if CommandLine.arguments.contains("--fireworks") {
             let delay: TimeInterval = CommandLine.arguments.contains("--snapshot") ? 4.8 : 0.5
@@ -83,6 +98,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 Notifier.shared.post(title: "🎉 someone approved your PR", body: "#1 Test notification from uPulls",
                                      subtitle: "vLX42/uPulls", url: URL(string: "https://github.com/vLX42/uPulls")!, thread: "test")
             }
+        }
+        if CommandLine.arguments.contains("--self-update-test") {
+            // Dev: check immediately and install whatever is newer than this build.
+            updater.check(token: store.token)
+            updater.$latest.compactMap { $0 }.first().sink { _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { updater.install() }
+            }.store(in: &cancellables)
         }
         if CommandLine.arguments.contains("--settings") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [self] in openSettings() }

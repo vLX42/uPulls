@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var store: Store
+    @ObservedObject private var updater = Updater.shared
     @EnvironmentObject private var launch: LaunchAtLogin
     @State private var newRepo = ""
     @State private var addFailed = false
@@ -112,6 +113,35 @@ struct SettingsView: View {
             }
 
             Section {
+                HStack {
+                    Text("Version \(Updater.currentVersion)")
+                    Spacer()
+                    updateStatus
+                    Button("Check now") { updater.check(token: store.token) }
+                        .controlSize(.small)
+                        .disabled(updater.state == .checking)
+                }
+                if let release = updater.updateAvailable {
+                    HStack {
+                        Text("uPulls \(release.version) is available.")
+                        Spacer()
+                        Link("Release notes", destination: release.pageURL).font(.callout)
+                        Button(updater.state == .downloading ? "Downloading…" : updater.state == .installing ? "Installing…" : "Update and relaunch") {
+                            updater.install()
+                        }
+                        .controlSize(.small)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(updater.state == .downloading || updater.state == .installing)
+                    }
+                }
+                Toggle("Check for updates automatically", isOn: $store.autoUpdate)
+            } header: {
+                Text("Updates")
+            } footer: {
+                Text("Checks GitHub Releases on launch and every 6 hours. Updating swaps the app bundle in place and relaunches.")
+            }
+
+            Section {
                 Toggle("Fireworks when my PR gets approved", isOn: $store.fireworks)
                 tuningSlider("Duration", value: $store.fireworksTuning.duration, in: 1.5...8, format: "%.1f s")
                 tuningSlider("Intensity", value: $store.fireworksTuning.intensity, in: 0.3...3, format: "%.1f×")
@@ -149,7 +179,17 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 480, height: 760)
+        .frame(width: 480, height: 820)
+    }
+
+    @ViewBuilder
+    private var updateStatus: some View {
+        switch updater.state {
+        case .checking: ProgressView().controlSize(.small)
+        case .upToDate: Text("Up to date").font(.caption).foregroundStyle(.secondary)
+        case .failed(let msg): Text(msg).font(.caption).foregroundStyle(.red).lineLimit(1)
+        default: EmptyView()
+        }
     }
 
     private func tuningSlider(_ title: String, value: Binding<Double>, in range: ClosedRange<Double>, format: String) -> some View {

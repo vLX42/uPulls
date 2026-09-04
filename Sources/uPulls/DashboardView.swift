@@ -3,6 +3,7 @@ import SwiftUI
 /// The popover: every tracked repo and its open PRs, visible at once.
 struct DashboardView: View {
     @EnvironmentObject private var store: Store
+    @ObservedObject private var updater = Updater.shared
     let onRefresh: () -> Void
     let onSettings: () -> Void
     let onQuit: () -> Void
@@ -45,6 +46,23 @@ struct DashboardView: View {
                 Text("· \(login)").font(.system(size: 11)).foregroundStyle(.tertiary)
             }
             Spacer()
+            if let release = updater.updateAvailable {
+                Button {
+                    updater.install()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: updater.state == .downloading || updater.state == .installing ? "arrow.down.circle" : "arrow.up.circle.fill")
+                        Text(updater.state == .downloading ? "Downloading…" : updater.state == .installing ? "Installing…" : "Update to \(release.version)")
+                    }
+                    .font(.system(size: 10, weight: .semibold))
+                    .padding(.horizontal, 7).padding(.vertical, 3)
+                    .background(Color.accentColor.opacity(0.22), in: Capsule())
+                    .foregroundStyle(Color.accentColor)
+                }
+                .buttonStyle(.plain)
+                .disabled(updater.state == .downloading || updater.state == .installing)
+                .help("Downloads the new version, swaps it in and relaunches")
+            }
             snoozeMenu
             Button(action: onRefresh) {
                 Image(systemName: "arrow.clockwise")

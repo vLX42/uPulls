@@ -11,6 +11,7 @@ Open GitHub pull requests in your menu bar. One glance, no clicking around.
 - Mute a repo for an hour, until tomorrow, or indefinitely; snooze everything for a break
 - Hides Dependabot/Renovate PRs (and optionally drafts), ignores Copilot and other bot chatter by default
 - Picks up the `gh` CLI token automatically, or takes a personal access token
+- Tells you when a new version is out and updates itself in place (one click, relaunches)
 
 Built because every "PR dashboard" is either a browser tab or an Electron app.
 
@@ -55,6 +56,11 @@ repo is muted or everything is snoozed. Bot activity (Copilot reviews, github-ac
 review requests on Renovate/Dependabot PRs) is ignored unless you turn *Quiet bots* off,
 and PRs hidden by the bot/draft filters never notify.
 
+**Updates.** uPulls checks GitHub Releases on launch and every 6 hours. A new version shows
+up as an "Update to x.y.z" pill in the popover header and as one notification; clicking it
+downloads the zip, swaps the app bundle in place, strips the quarantine flag and relaunches.
+Turn the automatic check off in Settings → Updates.
+
 **Fireworks** have their own section in Settings: duration, intensity, spark size,
 spread, and a *Test fireworks* button (⌘T) so you can tune them.
 
@@ -65,7 +71,7 @@ git clone https://github.com/vLX42/uPulls.git
 cd uPulls
 swift test               # diff logic, repo parsing, bot detection
 ./build.sh               # produces build/uPulls.app
-./release.sh             # produces dist/uPulls-1.0.4.zip
+./release.sh             # produces dist/uPulls-1.1.0.zip
 ```
 
 `swift build` handles compilation; `build.sh` wraps the binary in a proper
