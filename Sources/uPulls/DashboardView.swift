@@ -197,8 +197,7 @@ private struct RepoSection: View {
 
     private var sectionHeader: some View {
         let parts = repo.fullName.split(separator: "/", maxSplits: 1).map(String.init)
-        let hiddenBots = store.hiddenBotCount(for: repo)
-        let hiddenDrafts = store.hiddenDraftCount(for: repo)
+        let hidden = store.hiddenSummary(for: repo)
         return HStack(spacing: 6) {
             (Text((parts.first ?? "") + "/").foregroundStyle(.tertiary)
              + Text(parts.count > 1 ? parts[1] : "").foregroundStyle(repo.isMuted ? .tertiary : .secondary))
@@ -220,15 +219,11 @@ private struct RepoSection: View {
             } else if prs.isEmpty {
                 Text("no open PRs").font(.system(size: 10)).foregroundStyle(.quaternary)
             }
-            if hiddenBots > 0 {
-                Text("· \(hiddenBots) bot\(hiddenBots == 1 ? "" : "s") hidden")
+            if !hidden.label.isEmpty {
+                Text(hidden.label)
                     .font(.system(size: 10)).foregroundStyle(.quaternary)
-                    .help("Hidden by the bot filter (Settings → Menu)")
-            }
-            if hiddenDrafts > 0 {
-                Text("· \(hiddenDrafts) draft\(hiddenDrafts == 1 ? "" : "s") hidden")
-                    .font(.system(size: 10)).foregroundStyle(.quaternary)
-                    .help("Hidden by the draft filter (Settings → Menu)")
+                    .lineLimit(1).fixedSize()
+                    .help(hidden.detail)
             }
 
             Spacer(minLength: 4)

@@ -9,7 +9,7 @@ Open GitHub pull requests in your menu bar. One glance, no clicking around.
 - Notifications when someone comments on, requests changes to, or approves your PR
 - 🎆 Fireworks when a PR of yours gets approved (tunable, testable)
 - Mute a repo for an hour, until tomorrow, or indefinitely; snooze everything for a break
-- Hides Dependabot/Renovate PRs (and optionally drafts), ignores Copilot and other bot chatter by default
+- Hides Dependabot/Renovate PRs (and optionally drafts and already-approved PRs), ignores Copilot and other bot chatter by default
 - Picks up the `gh` CLI token automatically, or takes a personal access token
 - Tells you when a new version is out and updates itself in place (one click, relaunches)
 
@@ -42,6 +42,7 @@ Click the pull-request icon in the menu bar:
 - ✓ / ✕ / ● after the title is CI: passing, failing, running.
 - Bold title + ringed avatar = your PR. Orange `review` pill = they want you.
 - Bell on a repo row: mute for 1 hour, until tomorrow, indefinitely, or remove the repo.
+- Filters (Settings → Menu) can hide bot PRs, drafts and already-approved PRs. Your own PRs and PRs waiting on your review are never hidden; the repo line shows how many were.
 - Bell in the header: snooze all notifications. `+` / gear: manage repos and settings.
 - Right-click the menu bar icon for Refresh, Settings, Launch at Login, Quit.
 
@@ -71,7 +72,7 @@ git clone https://github.com/vLX42/uPulls.git
 cd uPulls
 swift test               # diff logic, repo parsing, bot detection
 ./build.sh               # produces build/uPulls.app
-./release.sh             # produces dist/uPulls-1.1.0.zip
+./release.sh             # produces dist/uPulls-1.2.0.zip
 ```
 
 `swift build` handles compilation; `build.sh` wraps the binary in a proper

@@ -165,6 +165,7 @@ struct SettingsView: View {
             Section("Menu") {
                 Toggle("Hide bot PRs (Dependabot, Renovate…)", isOn: $store.hideBotPRs)
                 Toggle("Hide draft PRs (yours always show)", isOn: $store.hideDraftPRs)
+                Toggle("Hide approved PRs (yours and ones waiting on you always show)", isOn: $store.hideApprovedPRs)
                 Toggle("Show open PR count in menu bar", isOn: $store.showCount)
                 Picker("Check GitHub every", selection: $store.pollInterval) {
                     Text("30 seconds").tag(30.0)

@@ -13,6 +13,7 @@ final class Store: ObservableObject {
     @Published var token: String { didSet { if token != oldValue, !Self.keychainDisabled { Keychain.write(token) } } }
     @Published var hideBotPRs: Bool { didSet { defaults.set(hideBotPRs, forKey: Key.hideBotPRs.rawValue) } }
     @Published var hideDraftPRs: Bool { didSet { defaults.set(hideDraftPRs, forKey: Key.hideDraftPRs.rawValue) } }
+    @Published var hideApprovedPRs: Bool { didSet { defaults.set(hideApprovedPRs, forKey: Key.hideApprovedPRs.rawValue) } }
     @Published var quietBots: Bool { didSet { defaults.set(quietBots, forKey: Key.quietBots.rawValue) } }
     @Published var notifyMyPRs: Bool { didSet { defaults.set(notifyMyPRs, forKey: Key.notifyMyPRs.rawValue) } }
     @Published var notifyReviewRequests: Bool { didSet { defaults.set(notifyReviewRequests, forKey: Key.notifyReviewRequests.rawValue) } }
@@ -45,7 +46,7 @@ final class Store: ObservableObject {
     static let keychainDisabled = ProcessInfo.processInfo.environment["UPULLS_NO_KEYCHAIN"] == "1"
 
     private enum Key: String {
-        case repos, hideBotPRs, hideDraftPRs, quietBots, notifyMyPRs, notifyReviewRequests, fireworks, fireworksTuning, showCount, autoUpdate, notifiedUpdateVersion, pollInterval, snoozedUntil, tracker
+        case repos, hideBotPRs, hideDraftPRs, hideApprovedPRs, quietBots, notifyMyPRs, notifyReviewRequests, fireworks, fireworksTuning, showCount, autoUpdate, notifiedUpdateVersion, pollInterval, snoozedUntil, tracker
     }
 
     private init() {
@@ -53,6 +54,7 @@ final class Store: ObservableObject {
         d.register(defaults: [
             Key.hideBotPRs.rawValue: true,
             Key.hideDraftPRs.rawValue: false,
+            Key.hideApprovedPRs.rawValue: false,
             Key.quietBots.rawValue: true,
             Key.notifyMyPRs.rawValue: true,
             Key.notifyReviewRequests.rawValue: true,
@@ -67,6 +69,7 @@ final class Store: ObservableObject {
         token = Self.keychainDisabled ? "" : (Keychain.read() ?? "")
         hideBotPRs = d.bool(forKey: Key.hideBotPRs.rawValue)
         hideDraftPRs = d.bool(forKey: Key.hideDraftPRs.rawValue)
+        hideApprovedPRs = d.bool(forKey: Key.hideApprovedPRs.rawValue)
         quietBots = d.bool(forKey: Key.quietBots.rawValue)
         notifyMyPRs = d.bool(forKey: Key.notifyMyPRs.rawValue)
         notifyReviewRequests = d.bool(forKey: Key.notifyReviewRequests.rawValue)
@@ -91,6 +94,7 @@ final class Store: ObservableObject {
         if pr.isAuthored(by: viewerLogin) { return false }
         if hideBotPRs && pr.isBotAuthored { return true }
         if hideDraftPRs && pr.isDraft { return true }
+        if hideApprovedPRs && pr.reviewDecision == .approved && !pr.isReviewRequested(from: viewerLogin) { return true }
         return false
     }
 
@@ -104,9 +108,32 @@ final class Store: ObservableObject {
             }
     }
 
+    /// Repo-header hint. `label` stays short enough for a 372pt popover
+    /// (one category spells itself out, several collapse to a count);
+    /// `detail` always carries the full breakdown for the tooltip.
+    func hiddenSummary(for repo: TrackedRepo) -> (label: String, detail: String) {
+        var parts: [String] = []
+        let bots = hiddenBotCount(for: repo)
+        let drafts = hiddenDraftCount(for: repo)
+        let approved = hiddenApprovedCount(for: repo)
+        if bots > 0 { parts.append("\(bots) bot\(bots == 1 ? "" : "s")") }
+        if drafts > 0 { parts.append("\(drafts) draft\(drafts == 1 ? "" : "s")") }
+        if approved > 0 { parts.append("\(approved) approved") }
+        guard !parts.isEmpty else { return ("", "") }
+        let total = bots + drafts + approved
+        let detail = parts.joined(separator: ", ") + " hidden by the filters in Settings → Menu"
+        let label = parts.count == 1 ? "· \(parts[0]) hidden" : "· \(total) hidden"
+        return (label, detail)
+    }
+
     func hiddenBotCount(for repo: TrackedRepo) -> Int {
         guard hideBotPRs else { return 0 }
         return prs.filter { $0.repoKey == repo.key && isHidden($0) && $0.isBotAuthored }.count
+    }
+
+    func hiddenApprovedCount(for repo: TrackedRepo) -> Int {
+        guard hideApprovedPRs else { return 0 }
+        return prs.filter { $0.repoKey == repo.key && isHidden($0) && $0.reviewDecision == .approved && !$0.isBotAuthored && !(hideDraftPRs && $0.isDraft) }.count
     }
 
     func hiddenDraftCount(for repo: TrackedRepo) -> Int {
