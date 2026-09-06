@@ -106,6 +106,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) { updater.install() }
             }.store(in: &cancellables)
         }
+        // Dev: force an appearance so both can be screenshotted from one machine.
+        if let i = CommandLine.arguments.firstIndex(of: "--appearance"), CommandLine.arguments.indices.contains(i + 1) {
+            NSApp.appearance = NSAppearance(named: CommandLine.arguments[i + 1] == "light" ? .aqua : .darkAqua)
+        }
         if CommandLine.arguments.contains("--edr-probe") {
             // Log the screen's live headroom before, during and after a volley:
             // if EDR engages, the "now" value climbs above 1.0 while it plays.
@@ -253,9 +257,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 .environmentObject(launch)
             let hosting = NSHostingController(rootView: root)
             let window = NSWindow(contentViewController: hosting)
-            window.title = "uPulls"
-            window.styleMask = [.titled, .closable, .miniaturizable]
+            window.title = "uPulls Settings"
+            window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+            // The form scrolls under the title bar; without a separator the text
+            // ghosts behind the title, which is very visible in dark mode.
+            window.titlebarSeparatorStyle = .line
             window.isReleasedWhenClosed = false
+            // Fixed width, free height: the form is one column, but how much of it
+            // you can see at once should follow the display.
+            let maxHeight = (NSScreen.main?.visibleFrame.height ?? 900) - 40
+            window.contentMinSize = NSSize(width: 480, height: 420)
+            window.contentMaxSize = NSSize(width: 480, height: maxHeight)
+            let tall = CommandLine.arguments.contains("--settings-tall")
+            window.setContentSize(NSSize(width: 480, height: tall ? maxHeight : min(820, maxHeight)))
             window.center()
             settingsWindowController = NSWindowController(window: window)
         }

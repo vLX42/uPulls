@@ -102,9 +102,9 @@ struct SettingsView: View {
                     }
                 }
                 HStack {
-                    Text("Try it").foregroundStyle(.secondary)
+                    Text("Send a test notification")
                     Spacer()
-                    Button("Test notification") {
+                    Button("Send") {
                         Notifier.shared.post(title: "🎉 octocat approved your PR",
                                              body: "#42 This is what an approval looks like", subtitle: "vLX42/uPulls",
                                              url: URL(string: "https://github.com/vLX42/uPulls")!, thread: "test")
@@ -165,10 +165,10 @@ struct SettingsView: View {
                 Text("Tweak, hit Test (⌘T), repeat. Settings apply to the next approval.")
             }
 
-            Section("Menu") {
-                Toggle("Hide bot PRs (Dependabot, Renovate…)", isOn: $store.hideBotPRs)
-                Toggle("Hide draft PRs (yours always show)", isOn: $store.hideDraftPRs)
-                Toggle("Hide approved PRs (yours and ones waiting on you always show)", isOn: $store.hideApprovedPRs)
+            Section {
+                Toggle("Hide bot PRs", isOn: $store.hideBotPRs)
+                Toggle("Hide draft PRs", isOn: $store.hideDraftPRs)
+                Toggle("Hide approved PRs", isOn: $store.hideApprovedPRs)
                 Toggle("Show open PR count in menu bar", isOn: $store.showCount)
                 Picker("Check GitHub every", selection: $store.pollInterval) {
                     Text("30 seconds").tag(30.0)
@@ -180,10 +180,15 @@ struct SettingsView: View {
                     get: { launch.isEnabled },
                     set: { launch.setEnabled($0) }
                 ))
+            } header: {
+                Text("Menu")
+            } footer: {
+                Text("Bot PRs are Dependabot, Renovate and friends. Approved means approved by someone else. Your own PRs and PRs waiting on your review are never hidden.")
             }
         }
         .formStyle(.grouped)
-        .frame(width: 480, height: 820)
+        .frame(width: 480)
+        .frame(minHeight: 420, maxHeight: .infinity)
     }
 
     /// Says whether the display can actually show the extra brightness.
