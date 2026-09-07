@@ -15,6 +15,12 @@ Open GitHub pull requests in your menu bar. One glance, no clicking around.
 
 Built because every "PR dashboard" is either a browser tab or an Electron app.
 
+## Don't trust a stranger's binary?
+
+Fair. [PROMPT.md](PROMPT.md) is the whole app written as a prompt, including the traps I hit,
+so a coding agent can rebuild it for you in an afternoon. Then the defaults are yours to
+change instead of mine to argue with.
+
 ## Install
 
 Grab the latest `uPulls-X.Y.Z.zip` from [Releases](https://github.com/vLX42/uPulls/releases),
