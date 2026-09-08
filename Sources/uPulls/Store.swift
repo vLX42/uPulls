@@ -34,6 +34,11 @@ final class Store: ObservableObject {
     @Published var viewerLogin: String? = nil
     @Published var repoErrors: [String: String] = [:]
     @Published var lastError: String? = nil
+    /// Set when the last refresh failed because the network was unreachable
+    /// (dropped link, VPN still coming up, stale DNS). Kept apart from
+    /// `lastError` so the popover can say "offline, retrying" instead of
+    /// showing a GitHub error the user can do nothing about.
+    @Published var isOffline = false
     @Published var lastRefresh: Date? = nil
     @Published var isRefreshing = false
 

@@ -119,7 +119,13 @@ struct DashboardView: View {
     private var list: some View {
         ScrollView(.vertical) {
             VStack(spacing: 0) {
-                if let err = store.lastError {
+                // Offline is a wait, not a fault: it stays grey and keeps the
+                // last known PRs below it. Real GitHub errors still shout.
+                if store.isOffline {
+                    Label("Offline. Retrying…", systemImage: "wifi.slash")
+                        .font(.system(size: 11)).foregroundStyle(.secondary)
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                } else if let err = store.lastError {
                     Label(err, systemImage: "exclamationmark.triangle.fill")
                         .font(.system(size: 11)).foregroundStyle(.orange)
                         .lineLimit(2)

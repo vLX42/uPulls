@@ -26,6 +26,23 @@ enum GitHubError: LocalizedError {
     }
 }
 
+/// Tells "the network isn't there" apart from "GitHub said no". A flaky link,
+/// a VPN coming up or a stale DNS cache should read as offline and retry
+/// quietly, not as a red error the user is expected to act on.
+enum NetworkFailure {
+    static func isOffline(_ error: Error) -> Bool {
+        guard let err = error as? URLError else { return false }
+        switch err.code {
+        case .notConnectedToInternet, .cannotFindHost, .cannotConnectToHost,
+             .dnsLookupFailed, .networkConnectionLost, .timedOut,
+             .internationalRoamingOff, .dataNotAllowed:
+            return true
+        default:
+            return false
+        }
+    }
+}
+
 /// One GraphQL round-trip per refresh: every tracked repo is an aliased
 /// `repository(owner:name:)` field so a bad repo fails alone instead of
 /// poisoning the whole request.
@@ -33,6 +50,20 @@ struct GitHubClient: Sendable {
     private static let endpoint = URL(string: "https://api.github.com/graphql")!
     private static let prsPerRepo = 50
     private static let timelineWindow = 20
+
+    /// Our own session rather than `.shared`: `waitsForConnectivity` lets a poll
+    /// that lands during a network flap queue up until the link is back instead
+    /// of failing instantly, and the resource timeout bounds that wait so a
+    /// refresh can never hang forever holding `isRefreshing`.
+    private static let session: URLSession = {
+        let cfg = URLSessionConfiguration.default
+        cfg.waitsForConnectivity = true
+        cfg.timeoutIntervalForRequest = 30
+        cfg.timeoutIntervalForResource = 90
+        cfg.requestCachePolicy = .reloadIgnoringLocalCacheData
+        cfg.urlCache = nil
+        return URLSession(configuration: cfg)
+    }()
 
     private static let fragment = """
     fragment PR on PullRequest {
@@ -74,7 +105,7 @@ struct GitHubClient: Sendable {
         request.httpBody = try JSONSerialization.data(withJSONObject: ["query": query])
         request.timeoutInterval = 30
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await Self.session.data(for: request)
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             throw GitHubError.http(http.statusCode)
         }

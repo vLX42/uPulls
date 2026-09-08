@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import Network
 
 /// Owns the poll loop: fetch → store → diff → notify.
 @MainActor
@@ -7,8 +8,23 @@ final class Monitor {
     private let store: Store
     private let client = GitHubClient()
     private var timer: Timer?
+    private var retryTimer: Timer?
     private var cancellables: Set<AnyCancellable> = []
     private var settingsDebounce: AnyCancellable?
+
+    /// Watches the link so a reconnect refreshes straight away instead of
+    /// waiting out the rest of the poll interval.
+    private let path = NWPathMonitor()
+    private var pathSatisfied = true
+    private var consecutiveFailures = 0
+
+    /// Backoff after a failed refresh: a short blip heals in seconds, then it
+    /// eases off and lets the regular poll timer take over.
+    private static let retryDelays: [TimeInterval] = [5, 15, 45]
+
+    /// A link that just came back is not necessarily usable: DNS and VPN need a
+    /// moment, so a reconnect or a wake waits this long before fetching.
+    private static let settleDelay: TimeInterval = 2
 
     init(store: Store) {
         self.store = store
@@ -31,10 +47,31 @@ final class Monitor {
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
+            Task { @MainActor in self?.scheduleRefresh(in: Self.settleDelay) }
         }
 
+        path.pathUpdateHandler = { [weak self] update in
+            let satisfied = update.status == .satisfied
+            Task { @MainActor in self?.pathChanged(satisfied: satisfied) }
+        }
+        path.start(queue: DispatchQueue(label: "com.upulls.path"))
+
         refresh()
+    }
+
+    /// Losing the link is reported immediately; getting it back schedules a
+    /// catch-up fetch. Nothing happens when the path was already satisfied,
+    /// so this never fires on top of the normal poll.
+    private func pathChanged(satisfied: Bool) {
+        let wasSatisfied = pathSatisfied
+        pathSatisfied = satisfied
+        guard satisfied else {
+            store.isOffline = true
+            return
+        }
+        guard !wasSatisfied else { return }
+        consecutiveFailures = 0
+        scheduleRefresh(in: Self.settleDelay)
     }
 
     func refreshIfStale(olderThan seconds: TimeInterval = 20) {
@@ -44,6 +81,22 @@ final class Monitor {
 
     func refresh() {
         Task { await performRefresh() }
+    }
+
+    /// One-shot fetch, replacing any retry already queued.
+    private func scheduleRefresh(in delay: TimeInterval) {
+        retryTimer?.invalidate()
+        retryTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+            Task { @MainActor in self?.refresh() }
+        }
+    }
+
+    private func scheduleRetry() {
+        consecutiveFailures += 1
+        // Past the backoff ladder the regular poll timer is soon enough;
+        // stop stacking retries on a network that is simply down.
+        guard consecutiveFailures <= Self.retryDelays.count else { return }
+        scheduleRefresh(in: Self.retryDelays[consecutiveFailures - 1])
     }
 
     private func reschedule() {
@@ -58,8 +111,8 @@ final class Monitor {
     private func performRefresh() async {
         store.expireTimers()
         guard !store.isRefreshing else { return }
-        guard !store.token.isEmpty else { store.lastError = nil; return }
-        guard !store.repos.isEmpty else { store.prs = []; store.lastError = nil; return }
+        guard !store.token.isEmpty else { store.lastError = nil; store.isOffline = false; return }
+        guard !store.repos.isEmpty else { store.prs = []; store.lastError = nil; store.isOffline = false; return }
 
         store.isRefreshing = true
         defer { store.isRefreshing = false }
@@ -76,6 +129,10 @@ final class Monitor {
             store.repoErrors = result.repoErrors
             store.lastRefresh = Date()
             store.lastError = nil
+            store.isOffline = false
+            consecutiveFailures = 0
+            retryTimer?.invalidate()
+            retryTimer = nil
 
             let alerts = store.tracker.ingest(
                 prs: result.prs,
@@ -86,7 +143,16 @@ final class Monitor {
             guard !store.isSnoozed else { return }
             for alert in alerts { deliver(alert) }
         } catch {
-            store.lastError = error.localizedDescription
+            // "The network isn't there" is not something the user can act on:
+            // say so quietly and retry, and keep the last known PRs on screen.
+            if NetworkFailure.isOffline(error) {
+                store.isOffline = true
+                store.lastError = nil
+            } else {
+                store.isOffline = false
+                store.lastError = error.localizedDescription
+            }
+            scheduleRetry()
         }
     }
 

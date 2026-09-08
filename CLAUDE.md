@@ -66,6 +66,14 @@ alone) → `Store.prs` / `repoErrors` → `ActivityTracker.ingest` (pure diff, r
   `emitterShape = .rectangle`: `.line` emits nothing visible on macOS (verified). The view is flipped so
   "up" is `-π/2` and gravity is positive `yAcceleration`.
 
+- Network trouble is not an error: `NetworkFailure.isOffline` sorts `URLError` link failures (no connection,
+  DNS, host unreachable, timeout) from GitHub failures, so the popover shows a grey "Offline. Retrying…"
+  instead of an orange error and keeps the last known PRs. `GitHubClient` uses its own `URLSession` with
+  `waitsForConnectivity` (bounded by `timeoutIntervalForResource`, so a refresh can't hang holding
+  `isRefreshing`). `Monitor` runs an `NWPathMonitor`: losing the link sets `isOffline` at once, regaining it
+  fetches after a 2s settle (DNS/VPN need a moment), and failures retry at 5s/15s/45s before falling back to
+  the poll timer. Wake now uses the same settle delay instead of firing immediately.
+
 - `Updater` polls `repos/vLX42/uPulls/releases/latest`, compares with `CFBundleShortVersionString`, and installs
   by moving the running bundle aside, moving the unpacked app in, and relaunching via a `/bin/sh` that waits for
   the pid to exit. The release zip keeps a parent folder, so it searches up to three levels for the `.app`.
